@@ -366,3 +366,71 @@ body { user-select: none; -webkit-user-select: none; }
 .tab.is-active { color: var(--accent); }
 .tab-ico { font-size: 19px; line-height: 1; }
 .tab-lab { font-size: 10px; font-weight: 500; }
+
+/* ---------- Copia de seguridad ---------- */
+
+.backup {
+  border-top: 1px solid var(--hairline);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.backup-title { font-size: 15px; font-weight: 600; }
+.backup-state { font-size: 13px; color: var(--muted); line-height: 1.45; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.mini {
+  border: 0;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.mini.ghost { background: transparent; color: var(--muted); }
+.mini:disabled { opacity: .5; cursor: default; }
+
+.code-box {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.code-box[hidden] { display: none; }
+.code-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.code-val {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 17px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  user-select: all;
+  -webkit-user-select: all;
+  word-break: break-all;
+  line-height: 1.5;
+}
+.code-input {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 16px;          /* 16px evita que iOS haga zoom al enfocar */
+  letter-spacing: 0.04em;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 11px 12px;
+  width: 100%;
+  text-transform: uppercase;
+}
+.code-input:focus { outline: none; border-color: var(--accent); }
+.code-warn { font-size: 12px; color: var(--faint); line-height: 1.45; }

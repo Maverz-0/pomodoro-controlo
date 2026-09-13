@@ -88,6 +88,34 @@
         <summary>Ver datos</summary>
         <div id="tableHost"></div>
       </details>
+
+      <section class="backup">
+        <h2 class="backup-title">Copia de seguridad</h2>
+        <p class="backup-state" id="backupState"></p>
+        <div class="backup-actions" id="backupActions"></div>
+
+        <div class="code-box" id="codeBox" hidden>
+          <span class="code-label">Tu clave de recuperación</span>
+          <code class="code-val" id="codeVal"></code>
+          <p class="code-warn">Guárdala fuera del móvil. Sin ella el histórico no se puede recuperar.</p>
+          <div class="backup-actions">
+            <button class="mini" id="copyCodeBtn">Copiar</button>
+            <button class="mini" id="shareCodeBtn">Compartir</button>
+            <button class="mini ghost" id="hideCodeBtn">Ocultar</button>
+          </div>
+        </div>
+
+        <div class="code-box" id="restoreBox" hidden>
+          <span class="code-label">Introduce tu clave</span>
+          <input class="code-input" id="restoreInput" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"
+                 autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text">
+          <p class="code-warn">Reemplaza el histórico de este móvil por el de la copia.</p>
+          <div class="backup-actions">
+            <button class="mini" id="restoreGoBtn">Restaurar</button>
+            <button class="mini ghost" id="restoreCancelBtn">Cancelar</button>
+          </div>
+        </div>
+      </section>
     </section>
 
     <!-- ---------- Navegación ---------- -->
@@ -107,6 +135,7 @@
   <script src="./config.js"></script>
   <script src="./push.js"></script>
   <script src="./stats.js"></script>
+  <script src="./backup.js"></script>
   <script src="./charts.js"></script>
   <script src="./app.js"></script>
 </body>

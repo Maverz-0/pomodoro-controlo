@@ -8,6 +8,7 @@
 import { encryptPayload, vapidAuth } from './crypto.js';
 
 const MAX_DELAY_MS = 6 * 60 * 60 * 1000; // tope de sensatez: 6 h
+const MAX_BLOB = 160 * 1024;             // tope del blob de copia
 
 const LABELS = {
   focus: { title: 'Pomodoro terminado', body: 'Tómate un descanso.' },
@@ -90,6 +91,41 @@ export default {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }));
+      return new Response(res.body, { status: res.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+
+    /* ---------- copia de seguridad cifrada ----------
+       El servidor guarda un blob opaco bajo el hash de la clave de
+       recuperación. No tiene la clave, así que no puede leer el contenido. */
+
+    if (url.pathname === '/backup/put' && request.method === 'POST') {
+      let body;
+      try { body = await request.json(); }
+      catch { return json({ error: 'JSON inválido' }, { status: 400 }, cors); }
+
+      if (!/^[0-9a-f]{64}$/.test(body.id || '')) {
+        return json({ error: 'id inválido' }, { status: 400 }, cors);
+      }
+      if (typeof body.blob !== 'string' || !body.blob || body.blob.length > MAX_BLOB) {
+        return json({ error: 'blob inválido' }, { status: 400 }, cors);
+      }
+
+      const stub = env.BACKUP.get(env.BACKUP.idFromName(body.id));
+      const res = await stub.fetch(new Request('https://do/put', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blob: body.blob }),
+      }));
+      return new Response(res.body, { status: res.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+
+    if (url.pathname === '/backup/get' && request.method === 'GET') {
+      const id = url.searchParams.get('id') || '';
+      if (!/^[0-9a-f]{64}$/.test(id)) {
+        return json({ error: 'id inválido' }, { status: 400 }, cors);
+      }
+      const stub = env.BACKUP.get(env.BACKUP.idFromName(id));
+      const res = await stub.fetch(new Request('https://do/get'));
       return new Response(res.body, { status: res.status, headers: { ...cors, 'Content-Type': 'application/json' } });
     }
 
@@ -180,5 +216,28 @@ export class TimerAlarm {
     if (!res.ok) {
       throw new Error(`${res.status} ${await res.text().catch(() => '')}`.trim());
     }
+  }
+}
+
+/* ---------- Durable Object: la copia cifrada de un histórico ---------- */
+
+export class StatsBackup {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch(request) {
+    const path = new URL(request.url).pathname;
+
+    if (path === '/put') {
+      const { blob } = await request.json();
+      await this.state.storage.put('blob', blob);
+      await this.state.storage.put('at', Date.now());
+      return Response.json({ ok: true, bytes: blob.length });
+    }
+
+    const blob = await this.state.storage.get('blob');
+    if (!blob) return Response.json({ error: 'no encontrado' }, { status: 404 });
+    return Response.json({ blob, at: await this.state.storage.get('at') });
   }
 }

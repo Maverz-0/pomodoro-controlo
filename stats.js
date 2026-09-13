@@ -11,6 +11,7 @@ window.Stats = (() => {
   const MIN_SEGMENT_MS = 1000;   // ignora toques accidentales de Empezar/Pausar
 
   let data = { segments: [], open: null };
+  let onChange = null;
 
   /* ---------- persistencia ---------- */
 
@@ -26,6 +27,7 @@ window.Stats = (() => {
 
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
+    if (onChange) { try { onChange(); } catch {} }
   }
 
   function prune() {
@@ -148,12 +150,22 @@ window.Stats = (() => {
   const count = () => data.segments.length;
   const clear = () => { data = { segments: [], open: null }; save(); };
 
+  /* Reemplaza el histórico entero, respetando el tramo abierto si lo hay. */
+  function replaceAll(segments) {
+    data.segments = [...segments].sort((a, b) => a.s - b.s);
+    prune();
+    save();
+  }
+
+  /* Aviso a quien quiera enterarse de que el histórico cambió (la copia). */
+  const subscribe = (fn) => { onChange = fn; };
+
   load();
 
   return {
     begin, close, reconcile, hasOpen,
     byHour, byWeekday, byWeekOfMonth, withOpen, totalBetween,
-    startOfDay, startOfWeek, count, clear,
+    startOfDay, startOfWeek, count, clear, replaceAll, subscribe,
     _raw: () => data,
   };
 })();

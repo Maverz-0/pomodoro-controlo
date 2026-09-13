@@ -13,6 +13,7 @@ index.html              estructura
 styles.css              estilos (tema oscuro, safe-area de iOS)
 app.js                  lógica del temporizador y navegación
 stats.js                registro y agregación del tiempo de foco
+backup.js               copia cifrada del histórico
 charts.js               vista de estadísticas
 push.js                 suscripción a Web Push
 config.js               URL del Worker
@@ -82,6 +83,7 @@ Base funcional:
 - Avisos con la app cerrada o en segundo plano, vía Web Push
 - Estadísticas de tiempo de foco por hora del día, día de la semana y semana del mes
 - Aviso dentro de la app cuando hay una versión nueva
+- Copia de seguridad cifrada del histórico, con clave de recuperación
 
 ### Limitaciones conocidas
 
@@ -163,3 +165,45 @@ página se recarga. Así nunca se mezcla media versión vieja con media nueva.
 
 Al publicar cambios hay que subir `CACHE` en `sw.js`, o los navegadores
 seguirán sirviendo los ficheros viejos desde la caché.
+
+## Copia de seguridad del histórico
+
+Las estadísticas viven en `localStorage`, dentro del contenedor de la web app
+instalada. Ese contenedor es **independiente del de Safari** y se va con la app
+si la borras de la pantalla de inicio. De ahí la copia.
+
+### Por qué hace falta una clave
+
+Al borrar la app se pierde también la suscripción de push, que es lo que
+identifica al dispositivo en el Worker. Una reinstalación genera una
+suscripción nueva, así que no hay forma de reencontrar los datos por ahí.
+La clave de recuperación es el único hilo que sobrevive, y por eso hay que
+guardarla fuera del móvil.
+
+Son 20 caracteres (~98 bits) de un alfabeto sin `0/O` ni `1/I/L`, para poder
+copiarla a mano sin equivocarse.
+
+### El servidor no puede leer nada
+
+```
+id del documento = SHA-256("pomodoro-id:" + clave)      ← es lo único que viaja
+clave AES        = PBKDF2(clave, sal, 210 000, SHA-256) ← nunca sale del móvil
+blob             = AES-GCM(sal | iv | ciphertext)
+```
+
+El Worker guarda un blob opaco bajo un hash. No tiene la clave, así que no
+puede descifrar tus horarios. La contrapartida es absoluta: **sin la clave, el
+histórico es irrecuperable**, ni siquiera con acceso al servidor.
+
+### Formato en el cable
+
+Los tramos van como `[deltaInicioSegundos, duracionSegundos]`, con el inicio en
+diferencias respecto al anterior. Un `{s, e}` en milisegundos ocupa unos 40
+bytes; así bajan a unos 10, y 400 días de histórico caben de sobra en un solo
+documento (el Worker rechaza blobs de más de 160 KB).
+
+### Cuándo sube
+
+Al cerrarse cualquier tramo, con un rebote de 4 segundos, así que una ráfaga de
+cambios produce una sola subida. La restauración siempre es manual: hay que
+introducir la clave.

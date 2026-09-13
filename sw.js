@@ -1,6 +1,6 @@
 /* Service worker: cachea el shell para que la app abra sin conexión.
    Sube CACHE al cambiar ficheros para forzar actualización. */
-const CACHE = 'pomodoro-controlo-v5';
+const CACHE = 'pomodoro-controlo-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   './push.js',
   './config.js',
   './stats.js',
+  './backup.js',
   './charts.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

@@ -310,12 +310,135 @@ function vigilarActualizaciones(reg) {
   });
 }
 
+/* ---------- Copia de seguridad ---------- */
+
+const bk = {
+  estado:  document.getElementById('backupState'),
+  acciones:document.getElementById('backupActions'),
+  caja:    document.getElementById('codeBox'),
+  valor:   document.getElementById('codeVal'),
+  restaura:document.getElementById('restoreBox'),
+  entrada: document.getElementById('restoreInput'),
+};
+
+function hace(ts) {
+  if (!ts) return 'aún sin subir';
+  const min = Math.round((Date.now() - ts) / 60000);
+  if (min < 1) return 'hace un momento';
+  if (min < 60) return 'hace ' + min + ' min';
+  const h = Math.round(min / 60);
+  if (h < 24) return 'hace ' + h + ' h';
+  return 'hace ' + Math.round(h / 24) + ' días';
+}
+
+function botonBk(texto, id, ghost) {
+  return '<button class="mini' + (ghost ? ' ghost' : '') + '" data-bk="' + id + '">' + texto + '</button>';
+}
+
+function renderBackup(mensaje) {
+  if (Backup.activo()) {
+    bk.estado.textContent = mensaje
+      || 'Activada. El histórico se sube cifrado, ' + hace(Backup.ultimaSync()) + '.';
+    bk.acciones.innerHTML = botonBk('Ver clave', 'ver') + botonBk('Subir ahora', 'subir')
+      + botonBk('Restaurar otra', 'restaurar', true) + botonBk('Desactivar', 'off', true);
+  } else {
+    bk.estado.textContent = mensaje
+      || 'Desactivada. El histórico vive solo en este móvil: si borras la app, se pierde.';
+    bk.acciones.innerHTML = botonBk('Activar', 'activar') + botonBk('Restaurar una copia', 'restaurar', true);
+  }
+}
+
+function mostrarClave() {
+  bk.valor.textContent = Backup.formatear(Backup.codigo());
+  bk.caja.hidden = false;
+  bk.restaura.hidden = true;
+}
+
+bk.acciones.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-bk]');
+  if (!b) return;
+  const accion = b.dataset.bk;
+
+  if (accion === 'activar') {
+    Backup.activar();
+    mostrarClave();
+    renderBackup('Activada. Guarda la clave antes de seguir.');
+    const r = await Backup.subir();
+    if (!r.ok) renderBackup('Activada, pero la primera subida falló. Prueba «Subir ahora».');
+    else renderBackup();
+    return;
+  }
+
+  if (accion === 'ver') { mostrarClave(); return; }
+
+  if (accion === 'subir') {
+    bk.estado.textContent = 'Subiendo…';
+    const r = await Backup.subir();
+    renderBackup(r.ok
+      ? 'Subido: ' + r.tramos + ' tramos cifrados.'
+      : 'No se pudo subir (' + r.motivo + ').');
+    return;
+  }
+
+  if (accion === 'restaurar') {
+    bk.restaura.hidden = false;
+    bk.caja.hidden = true;
+    bk.entrada.value = '';
+    bk.entrada.focus();
+    return;
+  }
+
+  if (accion === 'off') {
+    Backup.desactivar();
+    bk.caja.hidden = true;
+    renderBackup('Desactivada. La copia que había en el servidor sigue ahí; con la clave puedes recuperarla.');
+  }
+});
+
+document.getElementById('copyCodeBtn').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(Backup.formatear(Backup.codigo()));
+    bk.estado.textContent = 'Clave copiada al portapapeles.';
+  } catch {
+    bk.estado.textContent = 'No se pudo copiar. Mantén pulsada la clave para seleccionarla.';
+  }
+});
+
+document.getElementById('shareCodeBtn').addEventListener('click', async () => {
+  const texto = 'Clave de recuperación de Pomodoro Controlo: ' + Backup.formatear(Backup.codigo());
+  if (!navigator.share) { bk.estado.textContent = 'Compartir no está disponible aquí.'; return; }
+  try { await navigator.share({ text: texto }); } catch {}
+});
+
+document.getElementById('hideCodeBtn').addEventListener('click', () => { bk.caja.hidden = true; });
+document.getElementById('restoreCancelBtn').addEventListener('click', () => { bk.restaura.hidden = true; });
+
+document.getElementById('restoreGoBtn').addEventListener('click', async (e) => {
+  const btn = e.target;
+  btn.disabled = true;
+  bk.estado.textContent = 'Restaurando…';
+  try {
+    const n = await Backup.restaurar(bk.entrada.value);
+    bk.restaura.hidden = true;
+    Charts.reset();
+    Charts.render();
+    renderBackup('Restaurados ' + n + ' tramos.');
+  } catch (err) {
+    bk.estado.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 /* ---------- arranque ---------- */
 
 load();
 // Si la app murió con un bloque de foco corriendo, ciérralo donde tocaba.
 Stats.reconcile(state.running);
 Charts.init();
+// Cada vez que cambia el histórico, se programa una subida con retardo.
+Stats.subscribe(() => Backup.sincronizar());
+renderBackup();
 
 if (state.running && secondsLeft() <= 0) {
   // Se cumplió mientras la app estaba cerrada.

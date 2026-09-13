@@ -4,17 +4,26 @@ compatibility_date = "2026-09-01"
 
 # Origen desde el que la app puede llamar (CORS) y URL a la que abre la notificación.
 [vars]
-ALLOWED_ORIGINS = "https://maverz-0.github.io"
+# El segundo origen es para desarrollo local (python -m http.server).
+ALLOWED_ORIGINS = "https://maverz-0.github.io,http://localhost:8765"
 APP_URL = "https://maverz-0.github.io/pomodoro-controlo/"
 
 [[durable_objects.bindings]]
 name = "TIMER"
 class_name = "TimerAlarm"
 
+[[durable_objects.bindings]]
+name = "BACKUP"
+class_name = "StatsBackup"
+
 # Las Durable Objects con backend SQLite están incluidas en el plan gratuito.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["TimerAlarm"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["StatsBackup"]
 
 # VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY y VAPID_SUBJECT se cargan como secrets:
 #   wrangler secret put VAPID_PRIVATE_KEY
