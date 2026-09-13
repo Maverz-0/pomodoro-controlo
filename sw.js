@@ -1,6 +1,6 @@
 /* Service worker: cachea el shell para que la app abra sin conexión.
    Sube CACHE al cambiar ficheros para forzar actualización. */
-const CACHE = 'pomodoro-v1';
+const CACHE = 'pomodoro-controlo-v1';
 const ASSETS = [
   './',
   './index.html',

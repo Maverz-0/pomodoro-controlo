@@ -140,7 +140,7 @@ function render() {
   const total = DURATIONS[state.mode];
 
   el.time.textContent = fmt(left);
-  document.title = `${fmt(left)} · Pomodoro`;
+  document.title = `${fmt(left)} · Pomodoro Controlo`;
   document.body.dataset.mode = state.mode;
 
   el.ring.style.strokeDashoffset = RING_LEN * (1 - left / total);

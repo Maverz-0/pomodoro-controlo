@@ -1,6 +1,6 @@
 {
-  "name": "Pomodoro",
-  "short_name": "Pomodoro",
+  "name": "Pomodoro Controlo",
+  "short_name": "Controlo",
   "description": "Controlador de tiempo estilo pomodoro",
   "start_url": "./",
   "scope": "./",

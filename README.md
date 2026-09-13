@@ -1,4 +1,4 @@
-# Pomodoro
+# Pomodoro Controlo
 
 Temporizador estilo pomodoro como **PWA**: se instala en el iPhone desde Safari
 (Compartir → *Añadir a pantalla de inicio*) y se abre a pantalla completa, sin barra
