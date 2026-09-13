@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Pomodoro</title>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#12141a">
+
+<!-- iOS: añadir a pantalla de inicio -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pomodoro">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/icon-192.png">
+
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="modes" id="modes">
+      <button class="mode is-active" data-mode="focus">Foco</button>
+      <button class="mode" data-mode="short">Descanso</button>
+      <button class="mode" data-mode="long">Largo</button>
+    </header>
+
+    <section class="dial">
+      <svg viewBox="0 0 240 240" class="ring" aria-hidden="true">
+        <circle class="ring-track" cx="120" cy="120" r="108"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="120" cy="120" r="108"></circle>
+      </svg>
+      <div class="readout">
+        <div class="time" id="time">25:00</div>
+        <div class="round" id="round">Ronda 1 · 0 completados</div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <button class="btn btn-ghost" id="resetBtn" aria-label="Reiniciar">↺</button>
+      <button class="btn btn-primary" id="startBtn">Empezar</button>
+      <button class="btn btn-ghost" id="skipBtn" aria-label="Saltar">↦</button>
+    </section>
+
+    <footer class="foot">
+      <span id="status">Listo</span>
+    </footer>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
