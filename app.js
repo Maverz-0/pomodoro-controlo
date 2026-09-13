@@ -19,6 +19,7 @@ const el = {
   resetBtn: document.getElementById('resetBtn'),
   skipBtn:  document.getElementById('skipBtn'),
   status:   document.getElementById('status'),
+  notifBtn: document.getElementById('notifBtn'),
 };
 
 const RING_LEN = 2 * Math.PI * 108;
@@ -64,6 +65,7 @@ function start() {
   save();
   render();
   loop();
+  Push.schedule(state.endAt, state.mode);
 }
 
 function pause() {
@@ -74,6 +76,7 @@ function pause() {
   cancelAnimationFrame(rafId);
   save();
   render();
+  Push.cancel();
 }
 
 function reset() {
@@ -83,6 +86,7 @@ function reset() {
   cancelAnimationFrame(rafId);
   save();
   render();
+  Push.cancel();
 }
 
 function setMode(mode, { keepStats = true } = {}) {
@@ -95,6 +99,7 @@ function setMode(mode, { keepStats = true } = {}) {
   cancelAnimationFrame(rafId);
   save();
   render();
+  Push.cancel();
 }
 
 /* Avanza al siguiente bloque. `natural` = el temporizador llegó a cero. */
@@ -187,6 +192,39 @@ function notify() {
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 }
 
+/* ---------- UI de avisos ---------- */
+
+const NOTIF_UI = {
+  'not-installed': { show: false, msg: 'Añade la app a la pantalla de inicio para recibir avisos' },
+  'unsupported':   { show: false, msg: 'Este navegador no admite avisos en segundo plano' },
+  'default':       { show: true,  label: '🔔 Activar avisos', msg: 'Listo' },
+  'denied':        { show: false, msg: 'Avisos bloqueados — actívalos en Ajustes › Notificaciones' },
+  'granted':       { show: false, msg: 'Avisos activados' },
+};
+
+function renderNotifUI(override) {
+  const s = override || Push.status();
+  const ui = NOTIF_UI[s] || NOTIF_UI.default;
+  el.notifBtn.hidden = !ui.show;
+  if (ui.label) el.notifBtn.textContent = ui.label;
+  el.status.textContent = ui.msg;
+}
+
+el.notifBtn.addEventListener('click', async () => {
+  el.notifBtn.disabled = true;
+  el.status.textContent = 'Pidiendo permiso…';
+  try {
+    await Push.enable();
+    renderNotifUI('granted');
+    // Si ya había un bloque corriendo, prográmalo ahora que hay suscripción.
+    if (state.running) Push.schedule(state.endAt, state.mode);
+  } catch (err) {
+    el.status.textContent = err.message;
+  } finally {
+    el.notifBtn.disabled = false;
+  }
+});
+
 /* ---------- eventos ---------- */
 
 el.startBtn.addEventListener('click', () => (state.running ? pause() : start()));
@@ -224,6 +262,10 @@ if (state.running && secondsLeft() <= 0) {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => renderNotifUI())
+      .catch(() => renderNotifUI());
   });
+} else {
+  renderNotifUI();
 }

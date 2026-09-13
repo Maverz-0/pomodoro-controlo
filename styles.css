@@ -136,3 +136,24 @@ body { user-select: none; -webkit-user-select: none; }
   color: var(--muted);
   min-height: 16px;
 }
+
+/* Aviso / permiso de notificaciones */
+.foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.notif {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.notif:active { transform: scale(0.97); }
+.notif[hidden] { display: none; }
