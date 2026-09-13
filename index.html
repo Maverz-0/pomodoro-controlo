@@ -19,38 +19,95 @@
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <div class="update-bar" id="updateBar" hidden>
+    <span>Hay una versión nueva</span>
+    <button id="updateBtn">Actualizar</button>
+  </div>
+
   <main class="app">
-    <header class="modes" id="modes">
-      <button class="mode is-active" data-mode="focus">Foco</button>
-      <button class="mode" data-mode="short">Descanso</button>
-      <button class="mode" data-mode="long">Largo</button>
-    </header>
 
-    <section class="dial">
-      <svg viewBox="0 0 240 240" class="ring" aria-hidden="true">
-        <circle class="ring-track" cx="120" cy="120" r="108"></circle>
-        <circle class="ring-progress" id="ringProgress" cx="120" cy="120" r="108"></circle>
-      </svg>
-      <div class="readout">
-        <div class="time" id="time">25:00</div>
-        <div class="round" id="round">Ronda 1 · 0 completados</div>
+    <!-- ---------- Temporizador ---------- -->
+    <section class="view view-timer" id="viewTimer">
+      <header class="modes" id="modes">
+        <button class="mode is-active" data-mode="focus">Foco</button>
+        <button class="mode" data-mode="short">Descanso</button>
+        <button class="mode" data-mode="long">Largo</button>
+      </header>
+
+      <div class="dial">
+        <svg viewBox="0 0 240 240" class="ring" aria-hidden="true">
+          <circle class="ring-track" cx="120" cy="120" r="108"></circle>
+          <circle class="ring-progress" id="ringProgress" cx="120" cy="120" r="108"></circle>
+        </svg>
+        <div class="readout">
+          <div class="time" id="time">25:00</div>
+          <div class="round" id="round">Ronda 1 · 0 completados</div>
+        </div>
       </div>
+
+      <div class="controls">
+        <button class="btn btn-ghost" id="resetBtn" aria-label="Reiniciar">↺</button>
+        <button class="btn btn-primary" id="startBtn">Empezar</button>
+        <button class="btn btn-ghost" id="skipBtn" aria-label="Saltar">↦</button>
+      </div>
+
+      <footer class="foot">
+        <button class="notif" id="notifBtn" hidden></button>
+        <span id="status">Listo</span>
+      </footer>
     </section>
 
-    <section class="controls">
-      <button class="btn btn-ghost" id="resetBtn" aria-label="Reiniciar">↺</button>
-      <button class="btn btn-primary" id="startBtn">Empezar</button>
-      <button class="btn btn-ghost" id="skipBtn" aria-label="Saltar">↦</button>
+    <!-- ---------- Estadísticas ---------- -->
+    <section class="view view-stats" id="viewStats" hidden>
+      <h1 class="stats-title">Tiempo de foco</h1>
+
+      <div class="seg" id="rangeSeg" role="tablist" aria-label="Agrupar por">
+        <button class="seg-btn is-active" data-range="hour" role="tab">Hora</button>
+        <button class="seg-btn" data-range="weekday" role="tab">Día</button>
+        <button class="seg-btn" data-range="week" role="tab">Semana</button>
+      </div>
+
+      <div class="period">
+        <button class="nav-btn" id="prevBtn" aria-label="Periodo anterior">‹</button>
+        <span class="period-label" id="periodLabel"></span>
+        <button class="nav-btn" id="nextBtn" aria-label="Periodo siguiente">›</button>
+      </div>
+
+      <div class="hero">
+        <div class="hero-val" id="heroTotal">—</div>
+        <div class="hero-sub" id="heroSub"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-sub" id="chartSub"></div>
+        <div id="chartHost"></div>
+        <div class="det" id="barDetail" hidden></div>
+      </div>
+
+      <details class="dwrap">
+        <summary>Ver datos</summary>
+        <div id="tableHost"></div>
+      </details>
     </section>
 
-    <footer class="foot">
-      <button class="notif" id="notifBtn" hidden></button>
-      <span id="status">Listo</span>
-    </footer>
+    <!-- ---------- Navegación ---------- -->
+    <nav class="tabbar" id="tabbar">
+      <button class="tab is-active" data-view="timer">
+        <span class="tab-ico" aria-hidden="true">◷</span>
+        <span class="tab-lab">Temporizador</span>
+      </button>
+      <button class="tab" data-view="stats">
+        <span class="tab-ico" aria-hidden="true">▥</span>
+        <span class="tab-lab">Estadísticas</span>
+      </button>
+    </nav>
+
   </main>
 
   <script src="./config.js"></script>
   <script src="./push.js"></script>
+  <script src="./stats.js"></script>
+  <script src="./charts.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

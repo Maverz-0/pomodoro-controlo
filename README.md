@@ -11,7 +11,9 @@ Sin build ni dependencias: HTML + CSS + JavaScript. Se sirve tal cual desde GitH
 ```
 index.html              estructura
 styles.css              estilos (tema oscuro, safe-area de iOS)
-app.js                  lógica del temporizador
+app.js                  lógica del temporizador y navegación
+stats.js                registro y agregación del tiempo de foco
+charts.js               vista de estadísticas
 push.js                 suscripción a Web Push
 config.js               URL del Worker
 manifest.webmanifest    metadatos de instalación
@@ -78,6 +80,8 @@ Base funcional:
 - Aviso al terminar: pitido (WebAudio) y vibración donde esté disponible
 
 - Avisos con la app cerrada o en segundo plano, vía Web Push
+- Estadísticas de tiempo de foco por hora del día, día de la semana y semana del mes
+- Aviso dentro de la app cuando hay una versión nueva
 
 ### Limitaciones conocidas
 
@@ -120,3 +124,42 @@ implementados a mano sobre WebCrypto en `worker/src/crypto.js`, sin dependencias
 | `POST /schedule` | Programa el aviso: `{subscription, endAt, mode}` |
 | `POST /cancel` | Cancela la alarma pendiente del dispositivo |
 | `GET /health` | Comprobación de vida |
+
+## Estadísticas
+
+Solo cuenta como foco el tiempo con el temporizador **corriendo en modo foco**.
+Se abre un tramo al pulsar Empezar y se cierra al pausar, reiniciar, saltar,
+cambiar de modo o completar el bloque; los descansos no suman nada.
+
+Los tramos se guardan como pares de marcas de tiempo en `localStorage`, así que
+cerrar la app no pierde lo acumulado. Si la app muere con un bloque corriendo,
+al volver el tramo se cierra en el instante en que el bloque habría terminado,
+nunca más allá.
+
+Al agregar, los tramos se parten en las fronteras que toque: un foco de 14:50 a
+15:20 suma 10 minutos a las 14 h y 20 a las 15 h, en vez de contarse entero en
+una sola. Igual con los que cruzan la medianoche.
+
+Tres lecturas, cada una navegable hacia atrás:
+
+| Vista | Agrupa | Periodo |
+|---|---|---|
+| Hora | 24 barras, una por hora | un día concreto |
+| Día | 7 barras, lunes a domingo | una semana concreta |
+| Semana | una barra por semana | un mes concreto |
+
+Tocar una barra muestra el dato exacto con su fecha completa. Las semanas se
+cortan en lunes, así que la primera y la última de un mes pueden ser parciales;
+el detalle recorta el rango al mes que se está viendo.
+
+Retención: 400 días.
+
+## Actualizaciones
+
+El service worker **no** toma el relevo por su cuenta. Cuando detecta una
+versión nueva se queda en espera y la app enseña una barra «Hay una versión
+nueva»; al pulsar Actualizar se le manda `SKIP_WAITING`, toma el control y la
+página se recarga. Así nunca se mezcla media versión vieja con media nueva.
+
+Al publicar cambios hay que subir `CACHE` en `sw.js`, o los navegadores
+seguirán sirviendo los ficheros viejos desde la caché.

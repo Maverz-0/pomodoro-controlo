@@ -62,6 +62,8 @@ function start() {
   state.endAt = Date.now() + state.remaining * 1000;
   state.running = true;
   unlockAudio();
+  // Solo el modo foco cuenta como tiempo de foco.
+  if (state.mode === 'focus') Stats.begin(state.endAt);
   save();
   render();
   loop();
@@ -73,6 +75,7 @@ function pause() {
   state.remaining = secondsLeft();
   state.running = false;
   state.endAt = null;
+  Stats.close(Date.now());
   cancelAnimationFrame(rafId);
   save();
   render();
@@ -80,6 +83,7 @@ function pause() {
 }
 
 function reset() {
+  Stats.close(Date.now());
   state.running = false;
   state.endAt = null;
   state.remaining = DURATIONS[state.mode];
@@ -91,6 +95,7 @@ function reset() {
 
 function setMode(mode, { keepStats = true } = {}) {
   if (!DURATIONS[mode]) return;
+  Stats.close(Date.now());
   state.mode = mode;
   state.running = false;
   state.endAt = null;
@@ -118,6 +123,8 @@ function advance(natural) {
 
 function complete() {
   cancelAnimationFrame(rafId);
+  // Cierra el foco en el instante exacto en que vencía, no cuando lo detectamos.
+  Stats.close(state.endAt || Date.now());
   state.running = false;
   state.endAt = null;
   notify();
@@ -247,9 +254,69 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+/* ---------- Pestañas ---------- */
+
+function showView(name) {
+  document.getElementById('viewTimer').hidden = name !== 'timer';
+  document.getElementById('viewStats').hidden = name !== 'stats';
+  for (const t of document.getElementById('tabbar').children) {
+    t.classList.toggle('is-active', t.dataset.view === name);
+  }
+  if (name === 'stats') Charts.render();
+}
+
+document.getElementById('tabbar').addEventListener('click', (e) => {
+  const t = e.target.closest('.tab');
+  if (t) showView(t.dataset.view);
+});
+
+/* ---------- Aviso de nueva versión ---------- */
+
+let recargando = false;
+
+function ofrecerActualizacion(reg) {
+  const bar = document.getElementById('updateBar');
+  bar.hidden = false;
+  document.getElementById('updateBtn').onclick = () => {
+    // El nuevo service worker espera a que se lo pidamos para tomar el relevo.
+    if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+    bar.hidden = true;
+  };
+}
+
+function vigilarActualizaciones(reg) {
+  if (reg.waiting && navigator.serviceWorker.controller) ofrecerActualizacion(reg);
+
+  reg.addEventListener('updatefound', () => {
+    const nuevo = reg.installing;
+    if (!nuevo) return;
+    nuevo.addEventListener('statechange', () => {
+      // Sin controller es la primera instalación: no hay nada que "actualizar".
+      if (nuevo.state === 'installed' && navigator.serviceWorker.controller) {
+        ofrecerActualizacion(reg);
+      }
+    });
+  });
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargando) return;
+    recargando = true;
+    location.reload();
+  });
+
+  // Busca versiones nuevas al volver a la app.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') reg.update().catch(() => {});
+  });
+}
+
 /* ---------- arranque ---------- */
 
 load();
+// Si la app murió con un bloque de foco corriendo, ciérralo donde tocaba.
+Stats.reconcile(state.running);
+Charts.init();
+
 if (state.running && secondsLeft() <= 0) {
   // Se cumplió mientras la app estaba cerrada.
   state.running = false;
@@ -263,7 +330,7 @@ if (state.running && secondsLeft() <= 0) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => renderNotifUI())
+      .then((reg) => { renderNotifUI(); vigilarActualizaciones(reg); })
       .catch(() => renderNotifUI());
   });
 } else {

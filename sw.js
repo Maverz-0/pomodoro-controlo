@@ -1,6 +1,6 @@
 /* Service worker: cachea el shell para que la app abra sin conexión.
    Sube CACHE al cambiar ficheros para forzar actualización. */
-const CACHE = 'pomodoro-controlo-v3';
+const CACHE = 'pomodoro-controlo-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,8 @@ const ASSETS = [
   './app.js',
   './push.js',
   './config.js',
+  './stats.js',
+  './charts.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -15,7 +17,13 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // Sin skipWaiting: el service worker nuevo se queda en espera hasta que la
+  // app avisa al usuario y este acepta. Así nunca cambia la versión a medias.
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+});
+
+self.addEventListener('message', (e) => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
