@@ -73,6 +73,8 @@ Base funcional:
 
 - Tres modos: Foco (25 min), Descanso (5 min), Descanso largo (15 min)
 - Ciclo automático, con descanso largo cada 4 pomodoros
+- Interruptor «Automático» (activado por defecto): encadena los bloques sin
+  pulsar Empezar
 - Contador de rondas y de pomodoros completados
 - Empezar / pausar / reanudar / reiniciar / saltar
 - El tiempo se calcula con marcas de tiempo, no contando ticks, así que sigue
@@ -207,3 +209,19 @@ documento (el Worker rechaza blobs de más de 160 KB).
 Al cerrarse cualquier tramo, con un rebote de 4 segundos, así que una ráfaga de
 cambios produce una sola subida. La restauración siempre es manual: hay que
 introducir la clave.
+
+## Encadenado automático
+
+Con el interruptor «Automático» activado —lo está por defecto— al terminar un
+bloque arranca el siguiente solo, indefinidamente: foco → descanso → foco…
+
+Solo encadena si el bloque **acaba de vencer** (margen de 90 s). Si venció hace
+rato porque la app estuvo cerrada o en segundo plano, se prepara el bloque
+siguiente pero no se arranca. Sin esa regla, volver a la app tras dos horas
+pondría a correr un foco que nadie está haciendo y lo registraría como tiempo
+real, falseando las estadísticas.
+
+Las llamadas al Worker para programar y cancelar avisos van en fila india
+(`push.js`). Encadenando bloques, el cancelar del que acaba y el programar del
+que empieza salen con microsegundos de diferencia; si llegasen al revés, el
+cancelar borraría el aviso recién puesto y el bloque terminaría en silencio.

@@ -434,3 +434,39 @@ body { user-select: none; -webkit-user-select: none; }
 }
 .code-input:focus { outline: none; border-color: var(--accent); }
 .code-warn { font-size: 12px; color: var(--faint); line-height: 1.45; }
+
+/* ---------- Interruptor de encadenado automático ---------- */
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.switch-lab { font-size: 14px; color: var(--text); font-weight: 500; }
+
+.switch {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+  transition: background .22s ease;
+}
+.switch.is-on { background: var(--accent); }
+
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+  transition: transform .22s cubic-bezier(.32, .72, 0, 1);
+}
+.switch.is-on .knob { transform: translateX(20px); }

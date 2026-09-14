@@ -61,32 +61,57 @@ window.Push = (() => {
     return serialize(sub);
   }
 
+  const TIMEOUT_MS = 8000;
+
   async function post(path, body) {
     if (!base() || base().includes('TU-SUBDOMINIO')) return null;
+    // Sin tope, una petición colgada atascaría la cola indefinidamente.
+    const corte = new AbortController();
+    const t = setTimeout(() => corte.abort(), TIMEOUT_MS);
     try {
       const res = await fetch(`${base()}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         keepalive: true,   // que salga aunque iOS congele la app justo después
+        signal: corte.signal,
       });
       return res.ok ? res.json() : null;
     } catch {
       return null;
+    } finally {
+      clearTimeout(t);
     }
   }
 
-  /* Programa el aviso para el instante en que acaba el bloque. */
-  async function schedule(endAt, mode) {
-    const subscription = await currentSubscription();
-    if (!subscription) return null;
-    return post('/schedule', { subscription, endAt, mode });
+  /* Programar y cancelar van en fila india. Encadenando bloques
+     automáticamente, el cancelar del bloque que acaba y el programar del que
+     empieza salen con microsegundos de diferencia; si llegasen al revés, el
+     cancelar borraría el aviso recién puesto y el bloque terminaría en
+     silencio. La cola garantiza el orden. */
+  let cola = Promise.resolve();
+
+  function encolar(tarea) {
+    // El segundo argumento hace que un fallo no atasque la cola.
+    cola = cola.then(tarea, tarea);
+    return cola;
   }
 
-  async function cancel() {
-    const subscription = await currentSubscription();
-    if (!subscription) return null;
-    return post('/cancel', { subscription });
+  /* Programa el aviso para el instante en que acaba el bloque. */
+  function schedule(endAt, mode) {
+    return encolar(async () => {
+      const subscription = await currentSubscription();
+      if (!subscription) return null;
+      return post('/schedule', { subscription, endAt, mode });
+    });
+  }
+
+  function cancel() {
+    return encolar(async () => {
+      const subscription = await currentSubscription();
+      if (!subscription) return null;
+      return post('/cancel', { subscription });
+    });
   }
 
   const status = () => {

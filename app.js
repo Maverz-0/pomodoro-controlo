@@ -8,6 +8,12 @@ const DURATIONS = {
   long:  15 * 60,
 };
 const ROUNDS_BEFORE_LONG = 4;
+
+/* Con el encadenado automático, solo se arranca solo el bloque siguiente si el
+   anterior acaba de vencer. Si venció hace rato —la app estuvo cerrada o en
+   segundo plano— arrancar ahora falsearía el registro: contaría como foco un
+   tiempo que no lo fue. En ese caso se deja el bloque preparado y listo. */
+const AUTO_GRACE_MS = 90 * 1000;
 const STORE_KEY = 'pomodoro.state.v1';
 
 const el = {
@@ -20,6 +26,7 @@ const el = {
   skipBtn:  document.getElementById('skipBtn'),
   status:   document.getElementById('status'),
   notifBtn: document.getElementById('notifBtn'),
+  autoBtn:  document.getElementById('autoBtn'),
 };
 
 const RING_LEN = 2 * Math.PI * 108;
@@ -31,6 +38,7 @@ let state = {
   remaining: DURATIONS.focus, // segundos restantes, si pausado
   round: 1,           // ronda de foco actual
   completed: 0,       // pomodoros de foco completados
+  auto: true,         // encadenar bloques sin pulsar Empezar
 };
 
 let rafId = null;
@@ -123,13 +131,22 @@ function advance(natural) {
 
 function complete() {
   cancelAnimationFrame(rafId);
+  const vencioEn = state.endAt || Date.now();
   // Cierra el foco en el instante exacto en que vencía, no cuando lo detectamos.
-  Stats.close(state.endAt || Date.now());
+  Stats.close(vencioEn);
   state.running = false;
   state.endAt = null;
   notify();
   advance(true);
-  el.status.textContent = 'Bloque completado';
+
+  if (state.auto && Date.now() - vencioEn <= AUTO_GRACE_MS) {
+    start();
+    el.status.textContent = 'Encadenado automáticamente';
+  } else if (state.auto) {
+    el.status.textContent = 'Bloque vencido mientras no mirabas';
+  } else {
+    el.status.textContent = 'Bloque completado';
+  }
 }
 
 /* ---------- bucle de render ---------- */
@@ -163,6 +180,9 @@ function render() {
   for (const b of el.modes.children) {
     b.classList.toggle('is-active', b.dataset.mode === state.mode);
   }
+
+  el.autoBtn.classList.toggle('is-on', state.auto);
+  el.autoBtn.setAttribute('aria-checked', String(state.auto));
 }
 
 /* ---------- aviso: sonido + vibración ---------- */
@@ -237,6 +257,15 @@ el.notifBtn.addEventListener('click', async () => {
 el.startBtn.addEventListener('click', () => (state.running ? pause() : start()));
 el.resetBtn.addEventListener('click', reset);
 el.skipBtn.addEventListener('click', () => advance(false));
+
+el.autoBtn.addEventListener('click', () => {
+  state.auto = !state.auto;
+  save();
+  render();
+  el.status.textContent = state.auto
+    ? 'Los bloques se encadenarán solos'
+    : 'Cada bloque esperará a que pulses Empezar';
+});
 
 el.modes.addEventListener('click', (e) => {
   const btn = e.target.closest('.mode');
@@ -442,9 +471,12 @@ renderBackup();
 
 if (state.running && secondsLeft() <= 0) {
   // Se cumplió mientras la app estaba cerrada.
+  const vencioEn = state.endAt;
   state.running = false;
   state.endAt = null;
   advance(true);
+  // Misma regla que al completar en vivo: encadena solo si acaba de vencer.
+  if (state.auto && Date.now() - vencioEn <= AUTO_GRACE_MS) start();
 } else {
   render();
   if (state.running) loop();
